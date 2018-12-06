@@ -9,6 +9,15 @@ Desktop.ini
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
 
+# VS project files
+.vs/
+Debug
+Release
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
 # Windows Installer files
 *.cab
 *.msi
