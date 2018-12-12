@@ -11,25 +11,34 @@
 #include <dirent.h>
 /* для strcmp */
 #include <string.h>
+/* strptime */
+#include <time.h>
+#include <pthread.h>
+#include <stdio.h>
 
-#include "data_loader.h"
 #include "../util/logger.h"
 #include "../filter/filter_time.h"
+#include "file_list.h"
 
-struct SFileInfo {
-	std::string m_strFileName;
-	size_t m_stFileSize;
-  int Init();
-  SFileInfo( const char *p_pszFileName ) : m_strFileName( p_pszFileName ) { }
-};
+namespace nf_file_list {
+  struct SFileInfo {
+    std::string m_strFileName;
+    size_t m_stFileSize;
+    int Init( time_t *p_ptFileTime );
+    SFileInfo( const char *p_pszFileName ) : m_strFileName( p_pszFileName ) { }
+    virtual ~SFileInfo() { }
+  };
+}
 
 /* список файлов */
-static std::multimap<time_t, SFileInfo * > g_mmapFileList;
+static std::multimap<time_t, nf_file_list::SFileInfo * > g_mmapFileList;
 /* текущий элемент списка */
-static std::multimap<time_t, SFileInfo * >::iterator g_iterFileList;
+static std::multimap<time_t, nf_file_list::SFileInfo * >::iterator g_iterFileList;
 
 /* обработка списка уже начата */
 static volatile int g_iStarted;
+
+static pthread_mutex_t g_mutexFileList;
 
 /* обход всех директорий */
 static int file_list_read_directory( const char *p_pszDir, const int p_iRecursive );
@@ -37,6 +46,12 @@ static int file_list_read_directory( const char *p_pszDir, const int p_iRecursiv
 int file_list_init( const std::set<std::string> *p_psetDirList, const int p_iRecursive )
 {
   int iRetVal = 0;
+
+  iRetVal = pthread_mutex_init( &g_mutexFileList, NULL );
+  if ( 0 == iRetVal ) {
+  } else {
+    return EINVAL;
+  }
 
   g_iterFileList = g_mmapFileList.end();
   for ( std::set<std::string>::const_iterator iter = p_psetDirList->begin(); iter != p_psetDirList->end(); ++iter ) {
@@ -48,17 +63,28 @@ int file_list_init( const std::set<std::string> *p_psetDirList, const int p_iRec
   return iRetVal;
 }
 
+void file_list_fini()
+{
+  pthread_mutex_destroy( &g_mutexFileList );
+}
+
 int file_list_add_data_file( const char *p_pszFileName )
 {
+  time_t tFileTime;
+
 	if( 0 == g_iStarted ) {
 	} else {
 		return EPERM;
 	}
 
-	SFileInfo *psoData = new SFileInfo( p_pszFileName );
+  nf_file_list::SFileInfo *psoData = new nf_file_list::SFileInfo( p_pszFileName );
 
-	if( 0 == psoData->Init() ) {
-	} else {
+	if( 0 == psoData->Init( &tFileTime ) ) {
+    if ( 0 == pthread_mutex_lock( &g_mutexFileList ) ) {
+      g_mmapFileList.insert( std::pair<time_t, nf_file_list::SFileInfo * >( tFileTime, psoData ) );
+      pthread_mutex_unlock( &g_mutexFileList );
+    }
+  } else {
 		delete psoData;
 		return EINVAL;
 	}
@@ -66,31 +92,37 @@ int file_list_add_data_file( const char *p_pszFileName )
 	int iRetVal = 0;
 }
 
-int file_list_go_to_next_file()
+nf_file_list::SFileInfo * file_list_get_next_file_info()
 {
-	int iRetVal = 0;
+  int iFnRes;
+  nf_file_list::SFileInfo * psoRetVal = NULL;
 
-	if( g_iterFileList != g_mmapFileList.end() ) {
-		++ g_iterFileList;
-	} else {
-		g_iterFileList = g_mmapFileList.begin();
-	}
-
-	if( g_iterFileList != g_mmapFileList.end() ) {
-	} else {
-		iRetVal = ENODATA;
-	}
-
-	return iRetVal;
-}
-
-SFileInfo * file_list_get_current_file_info()
-{
-  if ( g_iterFileList != g_mmapFileList.end() ) {
-    return g_iterFileList->second;
+  iFnRes = pthread_mutex_lock( &g_mutexFileList );
+  if ( 0 == iFnRes ) {
   } else {
     return NULL;
   }
+
+  if ( g_iterFileList != g_mmapFileList.end() ) {
+    ++ g_iterFileList;
+  } else {
+    if ( 0 == g_iStarted ) {
+      g_iterFileList = g_mmapFileList.begin();
+      g_iStarted = 1;
+    } else {
+      /* список файлов обработан полностью */
+      goto __unlock_and_exit__;
+    }
+  }
+
+  if ( g_iterFileList != g_mmapFileList.end() ) {
+    psoRetVal = g_iterFileList->second;
+  }
+
+  __unlock_and_exit__:
+  pthread_mutex_unlock( &g_mutexFileList );
+
+  return psoRetVal;
 }
 
 int file_list_get_file_count()
@@ -98,7 +130,7 @@ int file_list_get_file_count()
   return g_mmapFileList.size();
 }
 
-const std::string * file_list_get_file_name( const SFileInfo *p_psoFileInfo )
+const std::string * file_list_get_file_name( const nf_file_list::SFileInfo *p_psoFileInfo )
 {
   if ( NULL != p_psoFileInfo ) {
     return &p_psoFileInfo->m_strFileName;
@@ -107,7 +139,7 @@ const std::string * file_list_get_file_name( const SFileInfo *p_psoFileInfo )
   }
 }
 
-size_t file_list_get_file_size( const SFileInfo *p_psoFileInfo )
+size_t file_list_get_file_size( const nf_file_list::SFileInfo *p_psoFileInfo )
 {
   if ( NULL != p_psoFileInfo ) {
     return p_psoFileInfo->m_stFileSize;
@@ -116,7 +148,7 @@ size_t file_list_get_file_size( const SFileInfo *p_psoFileInfo )
   }
 }
 
-int SFileInfo::Init()
+int nf_file_list::SFileInfo::Init( time_t *p_ptFileTime )
 {
   if ( 0 != m_strFileName.length() ) {
   } else {
@@ -126,11 +158,35 @@ int SFileInfo::Init()
   int iRetVal = 0;
   struct stat soStat;
 
-  if ( 0 == stat( m_strFileName.c_str(), &soStat ) && 0 != soStat.st_size && 0 != filter_time_file( soStat.st_mtime ) ) {
-    m_stFileSize = soStat.st_size;
-    g_mmapFileList.insert( std::pair<time_t, SFileInfo * >( soStat.st_mtime, this ) );
+  if ( 0 == stat( m_strFileName.c_str(), &soStat ) ) {
   } else {
     return errno;
+  }
+
+  const char *pszBaseName;
+  const char *pszFnRes;
+  tm soTm;
+  time_t tTime = static_cast<time_t>( -1 );
+
+  memset( &soTm, 0, sizeof( soTm ) );
+  pszBaseName = basename( m_strFileName.c_str() );
+  pszFnRes = strptime( pszBaseName, "nf%Y%m%d%H%M%S.dat.bz2", &soTm );
+  if ( NULL != pszFnRes && *pszFnRes == '\0' ) {
+    tTime = mktime( &soTm );
+  } else {
+    logger_message( 9, "can't to recognize date value '%s' by using format '%s' at '%s'", pszBaseName, "nf%Y%m%d%H%M%S.dat.bz2", pszFnRes );
+  }
+
+  if ( tTime != static_cast<time_t>( -1 ) ) {
+  } else {
+    tTime = soStat.st_mtime;
+  }
+
+  if ( 0 != soStat.st_size && 0 != filter_time_file( tTime ) ) {
+    m_stFileSize = soStat.st_size;
+    *p_ptFileTime = tTime;
+  } else {
+    iRetVal = EINVAL;
   }
 
   return iRetVal;

@@ -32,6 +32,9 @@ struct SOptions {
     std::string m_strOutputFormatDate;
     std::string m_strOutputFormatDateAdd;
   } m_soOutputFormat;
+  struct {
+    uint32_t m_ui32ThreadCount;
+  } m_soConverter;
 };
 
 extern SOptions *g_psoOpt;

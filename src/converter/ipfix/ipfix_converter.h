@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "../../data/data_loader.h"
+
 #ifdef __cplus_plus
 extern "C" {
 #endif
@@ -11,7 +13,7 @@ extern "C" {
   /*
    *  запуск конвертора
    */
-  int ipfix_converter_convert_packet();
+  int ipfix_converter_convert_packet( nf_data_loader::SFileInfo *psoDataLoader );
 
 
 #ifdef __cplus_plus

@@ -11,6 +11,7 @@
 #include "logger.h"
 
 #define OPTIONS_DEFAULT_TIME_FORMAT "%d.%m.%Y %H:%M:%S"
+#define OPTIONS_DEFAULT_THREAD_COUNT 1
 
 static SOptions g_soOptions;
 SOptions *g_psoOpt;
@@ -40,6 +41,7 @@ int options_read_options( int argc, char *argv[ ] )
     { "filter-addr-dst",       required_argument, NULL, 0 },
     { "output-format-date",    required_argument, NULL, 0 },
     { "output-format-date-add",required_argument, NULL, 0 },
+    { "converter-thread-count",required_argument, NULL, 0 },
     { NULL, 0, NULL, 0}
   };
 
@@ -83,6 +85,13 @@ int options_read_options( int argc, char *argv[ ] )
           case 11:
             g_soOptions.m_soOutputFormat.m_strOutputFormatDateAdd = optarg;
             break;
+          case 12:
+            g_soOptions.m_soConverter.m_ui32ThreadCount = atol( optarg );
+            if ( 0 != g_soOptions.m_soConverter.m_ui32ThreadCount ) {
+            } else {
+              g_soOptions.m_soConverter.m_ui32ThreadCount = OPTIONS_DEFAULT_THREAD_COUNT;
+            }
+            break;
         }
         break;
       case '?':
@@ -114,6 +123,8 @@ void options_init()
   g_soOptions.m_soOutputFormat.m_strOutputFormatDate = OPTIONS_DEFAULT_TIME_FORMAT;
   g_soOptions.m_soOutputFormat.m_strOutputFormatDateAdd = "";
 
+  g_soOptions.m_soConverter.m_ui32ThreadCount = OPTIONS_DEFAULT_THREAD_COUNT;
+
   g_psoOpt = &g_soOptions;
 }
 
@@ -130,6 +141,7 @@ int options_str_to_time( const char *p_pszStr, time_t *p_ptmTime )
     pszTimeFormat = g_soOptions.m_soFilterTime.m_strFormat.c_str();
   }
 
+  memset( &soTm, 0, sizeof( soTm ) );
   pszFnRes = strptime( p_pszStr, pszTimeFormat, &soTm );
   if ( NULL != pszFnRes && *pszFnRes == '\0' ) {
     *p_ptmTime = mktime( &soTm );

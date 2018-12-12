@@ -13,7 +13,7 @@ extern "C" {
   /*
    *  запуск конвертора
    */
-  int netflow_converter_start();
+  void * netflow_converter_start(void * );
 
 
 #ifdef __cplus_plus

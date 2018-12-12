@@ -1,3 +1,5 @@
+#include <pthread.h>
+
 #include "data/data_loader.h"
 #include "converter/netflow_converter.h"
 #include "util/logger.h"
@@ -9,6 +11,8 @@
 int main( int argc, char *argv [] )
 {
 	int iRetVal = 0;
+  int iFnRes;
+  pthread_t * pmtConverterThread = NULL;
 
   if ( 0 == ( iRetVal = options_read_options( argc, argv ) ) ) {
   } else {
@@ -27,7 +31,22 @@ int main( int argc, char *argv [] )
 
   iRetVal = netflow_converter_init( "result.txt" );
 
-  iRetVal = netflow_converter_start();
+  pmtConverterThread = new pthread_t[ g_psoOpt->m_soConverter.m_ui32ThreadCount ];
+
+  for ( int i = 0; i < g_psoOpt->m_soConverter.m_ui32ThreadCount; ++i ) {
+    pthread_create( &pmtConverterThread[ i ], NULL, netflow_converter_start, NULL );
+  }
+
+  for ( int i = 0; i < g_psoOpt->m_soConverter.m_ui32ThreadCount; ++i ) {
+    pthread_join( pmtConverterThread[ i ], NULL );
+  }
+
+  delete[ ] pmtConverterThread;
+  pmtConverterThread = NULL;
+
+  logger_message( 0, "operated files: %d", data_loader_get_total_count_of_opened_files() );
+
+  file_list_fini();
 
   ipfix_converter_cache_fin();
 
