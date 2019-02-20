@@ -32,7 +32,7 @@ struct SIPFIXTemplateFieldList {
   SIPFIXTemplateFieldList() : m_ui16FieldCount( 0 ), m_stDataSetLength( 0 ) { }
 };
 
-static pthread_rwlock_t g_tTemplateCacheMutex;
+static pthread_rwlock_t g_tIPFIXCacheMutex;
 static std::map< SIPFIXTemplateCache, SIPFIXTemplateFieldList* > g_umapTemplateCache;
 
 static int ipfix_converter_template_cache_rd_lock();
@@ -43,14 +43,14 @@ int ipfix_converter_cache_init()
 {
   int iRetVal = 0;
 
-  iRetVal = pthread_rwlock_init( &g_tTemplateCacheMutex, NULL );
+  iRetVal = pthread_rwlock_init( &g_tIPFIXCacheMutex, NULL );
 
   return iRetVal;
 }
 
 void ipfix_converter_cache_fin()
 {
-  pthread_rwlock_destroy( &g_tTemplateCacheMutex );
+  pthread_rwlock_destroy( &g_tIPFIXCacheMutex );
 }
 
 SIPFIXTemplateCache * ipfix_converter_create_template( uint32_t p_ui32ObservDomainId, uint16_t p_ui16TemplateId )
@@ -189,17 +189,17 @@ int ipfix_converter_template_cache_get_field_info( SIPFIXTemplateFieldList * p_p
 
 static int ipfix_converter_template_cache_rd_lock()
 {
-  return pthread_rwlock_rdlock( &g_tTemplateCacheMutex );
+  return pthread_rwlock_rdlock( &g_tIPFIXCacheMutex );
 }
 
 static int ipfix_converter_template_cache_wr_lock()
 {
-  return pthread_rwlock_unlock( &g_tTemplateCacheMutex );
+  return pthread_rwlock_unlock( &g_tIPFIXCacheMutex );
 }
 
 static int ipfix_converter_template_cache_unlock()
 {
-  return pthread_rwlock_unlock( &g_tTemplateCacheMutex );
+  return pthread_rwlock_unlock( &g_tIPFIXCacheMutex );
 }
 
 SIPFIXTemplateCache::SIPFIXTemplateCache( uint32_t p_ui32ObservDomainId, uint16_t p_ui16TemplateId )

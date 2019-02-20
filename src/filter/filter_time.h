@@ -3,7 +3,7 @@
 
 #include <time.h>
 
-int filter_time_init( const time_t p_tmStart, const time_t p_tmStop, const time_t p_tmToleranceBefore, const time_t p_tmToleranceAfter );
+void filter_time_init( const time_t p_tmStart, const time_t p_tmStop, const time_t p_tmToleranceBefore, const time_t p_tmToleranceAfter );
 int filter_time_file( const time_t p_tmFileTime );
 int filter_time_data( const time_t p_timDataTime );
 

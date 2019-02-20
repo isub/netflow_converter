@@ -8,7 +8,7 @@ extern "C" {
   /*
    *  инициализация конвертора
    */
-  int netflow_converter_init( const char *p_pszResultFileName );
+  int netflow_converter_init();
 
   /*
    *  запуск конвертора

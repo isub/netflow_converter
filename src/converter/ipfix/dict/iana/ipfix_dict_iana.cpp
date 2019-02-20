@@ -1,5 +1,6 @@
 #include "../ipfix_dictionary.h"
 
+#include "../../../nfc_dict.h"
 #include "ipfix_dict_iana.h"
 
 using namespace ipfix;

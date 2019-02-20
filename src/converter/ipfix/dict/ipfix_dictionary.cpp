@@ -6,6 +6,7 @@
 #include <endian.h>
 #include <time.h>
 
+#include "../../nfc_dict.h"
 #include "../../../util/options.h"
 #include "../ipfix_data_types.h"
 #include "ipfix_dictionary.h"
@@ -42,8 +43,6 @@ static std::map< SIPFIXDictKey, SIPFIXDictData*> g_mapDict;
 static int ipfix_dict_get_range( const char *p_pszRange, std::pair<uint64_t, uint64_t> *p_ppairRange );
 static const char * ipfix_dict_get_unit_name( ipfix::EUnits p_eUnit );
 static int ipfix_dict_get_value( const ipfix::EDataType p_eDataType, const uint8_t *p_puiData, const size_t p_stDataLength, std::string *p_pstrValue, uint64_t *p_pui64ForFilter );
-static int ipfix_dict_get_integer_value( const uint8_t *p_puiData, const size_t p_stDataLength, uint64_t *p_pui64Value );
-static int ipfix_dict_get_inetaddr_value( int p_iAddressFamily, const uint8_t *p_puiData, const size_t p_stDataLength, std::string *p_pstrValue, uint64_t *p_pui64ForFilter );
 static int ipfix_dict_get_time_value( const ipfix::EDataType p_eDataType, const uint8_t *p_puiData, const size_t p_stDataLength, std::string *p_pstrValue, uint64_t *p_pui64ForFilter );
 
 int ipfix_dictionary_add(
@@ -82,6 +81,7 @@ int ipfix_dictionary_add(
   std::pair<std::map<SIPFIXDictKey, SIPFIXDictData*>::iterator, bool> pairInserResult;
 
   pairInserResult = g_mapDict.insert( std::pair<SIPFIXDictKey, SIPFIXDictData*>( soDictKey, psoDictData ) );
+  logger_message( 2, "ipfix dictionary: id range: %s; Enterprise Number: %u; information element: %s\n", p_pszIEIdRange, p_ui32EnterpriseNumber, p_pszName );
 
   if ( pairInserResult.second ) {
   } else {
@@ -179,6 +179,8 @@ bool operator < ( const SIPFIXDictKey &p_soLeft, const SIPFIXDictKey &p_soRight 
       return true;
     }
   }
+
+  return true;
 }
 
 SIPFIXDictKey::SIPFIXDictKey( uint16_t p_ui16First, uint16_t p_ui16Second, uint32_t p_ui32EntNumb )
@@ -250,6 +252,20 @@ int ipfix_dictionary_convert_value(
   return iRetVal;
 }
 
+const char * ipfix_dict_get_iename( const uint16_t p_ui16IEId, const uint32_t p_ui32EntNumb )
+{
+	SIPFIXDictKey soIEKey = { p_ui16IEId, 0, p_ui32EntNumb };
+
+	std::map<SIPFIXDictKey, SIPFIXDictData*>::iterator iterDict;
+
+	iterDict = g_mapDict.find( soIEKey );
+	if( iterDict != g_mapDict.end() ) {
+		return iterDict->second->m_pszName;
+	} else {
+		return NULL;
+	}
+}
+
 static const char * ipfix_dict_get_unit_name( ipfix::EUnits p_eUnit )
 {
   switch ( p_eUnit ) {
@@ -273,13 +289,13 @@ static const char * ipfix_dict_get_unit_name( ipfix::EUnits p_eUnit )
     case ipfix::messages:
       return "messages";
     case ipfix::seconds:
-      return "sec";
+      return "s";
     case ipfix::milliseconds:
-      return "msec";
+      return "ms";
     case ipfix::microseconds:
-      return "usec";
+      return "us";
     case ipfix::nanoseconds:
-      return "nsec";
+      return "ns";
     case ipfix::octets:
       return "octets";
     case ipfix::packets:
@@ -297,9 +313,10 @@ static int ipfix_dict_get_value( const ipfix::EDataType p_eDataType, const uint8
     case ipfix::unsigned8:
     case ipfix::unsigned16:
     case ipfix::unsigned32:
-    case ipfix::unsigned64: {
+    case ipfix::unsigned64:
+	{
       uint64_t ui64Value;
-      iRetVal = ipfix_dict_get_integer_value( p_puiData, p_stDataLength, &ui64Value );
+      iRetVal = nfc_dict_get_integer_value( p_puiData, p_stDataLength, &ui64Value );
       if ( 0 == iRetVal ) {
         *p_pstrValue = std::to_string( ui64Value );
         *p_pui64ForFilter = ui64Value;
@@ -311,7 +328,7 @@ static int ipfix_dict_get_value( const ipfix::EDataType p_eDataType, const uint8
     case ipfix::signed32:
     case ipfix::signed64: {
       int64_t i64Value;
-      iRetVal = ipfix_dict_get_integer_value( p_puiData, p_stDataLength, reinterpret_cast<uint64_t*>( &i64Value ) );
+      iRetVal = nfc_dict_get_integer_value( p_puiData, p_stDataLength, reinterpret_cast<uint64_t*>( &i64Value ) );
       if ( 0 == iRetVal ) {
         *p_pstrValue = std::to_string( i64Value );
         *p_pui64ForFilter = static_cast<uint64_t>( i64Value );
@@ -342,10 +359,10 @@ static int ipfix_dict_get_value( const ipfix::EDataType p_eDataType, const uint8
       iRetVal = ipfix_dict_get_time_value( p_eDataType, p_puiData, p_stDataLength, p_pstrValue, p_pui64ForFilter );
       break;
     case ipfix::ipv4Address:
-      iRetVal = ipfix_dict_get_inetaddr_value( AF_INET, p_puiData, p_stDataLength, p_pstrValue, p_pui64ForFilter );
+      iRetVal = nfc_dict_get_inetaddr_value( AF_INET, p_puiData, p_stDataLength, p_pstrValue, p_pui64ForFilter );
       break;
     case ipfix::ipv6Address:
-      iRetVal = ipfix_dict_get_inetaddr_value( AF_INET6, p_puiData, p_stDataLength, p_pstrValue, p_pui64ForFilter );
+      iRetVal = nfc_dict_get_inetaddr_value( AF_INET6, p_puiData, p_stDataLength, p_pstrValue, p_pui64ForFilter );
       break;
     case ipfix::basicList:
     case ipfix::subTemplateList:
@@ -358,142 +375,38 @@ static int ipfix_dict_get_value( const ipfix::EDataType p_eDataType, const uint8
   return iRetVal;
 }
 
-static int ipfix_dict_get_integer_value( const uint8_t *p_puiData, const size_t p_stDataLength, uint64_t *p_pui64Value )
-{
-  if ( p_stDataLength <= sizeof( uint64_t ) ) {
-  } else {
-    return EINVAL;
-  }
-
-  *p_pui64Value = 0;
-  memcpy( reinterpret_cast<uint8_t*>( p_pui64Value ) + sizeof( uint64_t ) - p_stDataLength, p_puiData, p_stDataLength );
-  *p_pui64Value = be64toh( *p_pui64Value );
-
-  return 0;
-}
-
-static int ipfix_dict_get_inetaddr_value( int p_iAddressFamily, const uint8_t *p_puiData, const size_t p_stDataLength, std::string *p_pstrValue, uint64_t *p_pui64ForFilter )
-{
-  uint64_t ui64Value;
-  in_addr soAddr;
-  in6_addr soAddr6;
-  char mcBuf[ 32 ];
-  void *pvSrc;
-
-  switch ( p_iAddressFamily ) {
-    case AF_INET: {
-
-      if ( p_stDataLength <= sizeof( soAddr ) ) {
-      } else {
-        return EINVAL;
-      }
-
-      memset( &soAddr.s_addr, 0, sizeof( soAddr.s_addr ) );
-      memcpy( reinterpret_cast<uint8_t*>( &soAddr.s_addr ) + sizeof( soAddr.s_addr ) - p_stDataLength, p_puiData, p_stDataLength );
-      pvSrc = &soAddr;
-      *p_pui64ForFilter = soAddr.s_addr;
-
-      break;
-    }
-    case AF_INET6: {
-      if ( p_stDataLength <= sizeof( soAddr6 ) ) {
-      } else {
-        return EINVAL;
-      }
-
-      memset( &soAddr6.s6_addr, 0, sizeof( soAddr6.s6_addr ) );
-      memcpy( reinterpret_cast<uint8_t*>( &soAddr6.s6_addr ) + sizeof( soAddr6.s6_addr ) - p_stDataLength, p_puiData, p_stDataLength );
-      *p_pui64ForFilter = 0;
-      pvSrc = &soAddr6;
-
-      break;
-    }
-    default:
-      return EINVAL;
-  }
-
-  if ( NULL != inet_ntop( p_iAddressFamily, pvSrc, mcBuf, sizeof( mcBuf ) ) ) {
-    *p_pstrValue = mcBuf;
-  } else {
-    return errno;
-  }
-
-  return 0;
-}
-
 static int ipfix_dict_get_time_value( const ipfix::EDataType p_eDataType, const uint8_t *p_puiData, const size_t p_stDataLength, std::string *p_pstrValue, uint64_t *p_pui64ForFilter )
 {
-  uint64_t ui64Time;
-  time_t tmTime;
-  uint32_t ui32Dev;
+	int iRetVal = 0;
+	uint32_t ui32Div;
+	uint64_t ui64Time;
 
-  ui64Time = 0;
-  memcpy( reinterpret_cast<uint8_t*>( &ui64Time ) + sizeof( ui64Time ) - p_stDataLength, p_puiData, p_stDataLength );
-  ui64Time = be64toh( ui64Time );
-  *p_pui64ForFilter = ui64Time;
+	switch( p_eDataType ) {
+		case ipfix::dateTimeSeconds:
+			ui32Div = 1;
+			break;
+		case ipfix::dateTimeMilliseconds:
+			ui32Div = 1000;
+			break;
+		case ipfix::dateTimeMicroseconds:
+			ui32Div = 1000000;
+			break;
+		case ipfix::dateTimeNanoseconds:
+			ui32Div = 1000000000;
+			break;
+		default:
+			return EINVAL;
+	}
 
-  switch ( p_eDataType ) {
-    case ipfix::dateTimeSeconds:
-      ui32Dev = 1;
-      break;
-    case ipfix::dateTimeMilliseconds:
-      ui32Dev = 1000;
-      break;
-    case ipfix::dateTimeMicroseconds:
-      ui32Dev = 1000000;
-      break;
-    case ipfix::dateTimeNanoseconds:
-      ui32Dev = 1000000000;
-      break;
-    default:
-      return EINVAL;
-  }
+	iRetVal = nfc_dict_get_integer_value( p_puiData, p_stDataLength, &ui64Time );
+	if( 0 == iRetVal ) {
+	} else {
+		return iRetVal;
+	}
 
-  tmTime = ui64Time / ui32Dev;
+	*p_pui64ForFilter = ui64Time;
 
-  tm soTm;
+	iRetVal = nfc_dict_get_time_value( ui32Div, ui64Time, p_pstrValue );
 
-  if ( NULL != gmtime_r( &tmTime, &soTm ) ) {
-  } else {
-    return EINVAL;
-  }
-
-  char mcBuf[ 64 ];
-  size_t stLen;
-
-  stLen = strftime( mcBuf, sizeof( mcBuf ), g_psoOpt->m_soOutputFormat.m_strOutputFormatDate.c_str(), &soTm );
-  if ( stLen > 0 && stLen < sizeof( mcBuf ) ) {
-  } else {
-    return EINVAL;
-  }
-
-  *p_pstrValue = mcBuf;
-
-  if ( 0 != g_psoOpt->m_soOutputFormat.m_strOutputFormatDateAdd.length() ) {
-  } else {
-    return 0;
-  }
-
-  uint32_t ui32Mul;
-  time_t tmNSec;
-
-  tmNSec = ui64Time % ui32Dev;
-
-  if ( 0 == g_psoOpt->m_soOutputFormat.m_strOutputFormatDateAdd.compare( "sec" ) ) {
-    return 0;
-  } else if ( 0 == g_psoOpt->m_soOutputFormat.m_strOutputFormatDateAdd.compare( "msec" ) ) {
-    ui32Mul = 1000;
-  } else if ( 0 == g_psoOpt->m_soOutputFormat.m_strOutputFormatDateAdd.compare( "usec" ) ) {
-    ui32Mul = 1000000;
-  } else if ( 0 == g_psoOpt->m_soOutputFormat.m_strOutputFormatDateAdd.compare( "nsec" ) ) {
-    ui32Mul = 1000000000;
-  } else {
-    return EINVAL;
-  }
-
-  snprintf( mcBuf, sizeof( mcBuf ), ",%u", tmNSec * ( ui32Mul / ui32Dev ) );
-
-  *p_pstrValue += mcBuf;
-
-  return 0;
+	return iRetVal;
 }

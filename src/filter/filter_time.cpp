@@ -7,7 +7,7 @@ static time_t g_tmToleranceAfter;
 
 static int filter_time_check_time( time_t p_tmTime, time_t p_tmToleranceBefore, time_t p_tmToleranceAfter );
 
-int filter_time_init( const time_t p_tmStart, const time_t p_tmStop, const time_t p_tmToleranceBefore, const time_t p_tmToleranceAfter )
+void filter_time_init( const time_t p_tmStart, const time_t p_tmStop, const time_t p_tmToleranceBefore, const time_t p_tmToleranceAfter )
 {
   g_tmTimeStart = p_tmStart;
   g_tmTimeStop = p_tmStop;

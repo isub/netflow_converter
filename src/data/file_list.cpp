@@ -58,7 +58,7 @@ int file_list_init( const std::set<std::string> *p_psetDirList, const int p_iRec
     file_list_read_directory( iter->c_str(), p_iRecursive );
   }
 
-  logger_message( 3, "file list size: %d", file_list_get_file_count() );
+  logger_message( 5, "file list size: %d\n", file_list_get_file_count() );
 
   return iRetVal;
 }
@@ -70,26 +70,26 @@ void file_list_fini()
 
 int file_list_add_data_file( const char *p_pszFileName )
 {
-  time_t tFileTime;
+	time_t tFileTime;
 
 	if( 0 == g_iStarted ) {
 	} else {
 		return EPERM;
 	}
 
-  nf_file_list::SFileInfo *psoData = new nf_file_list::SFileInfo( p_pszFileName );
+	nf_file_list::SFileInfo *psoData = new nf_file_list::SFileInfo( p_pszFileName );
 
 	if( 0 == psoData->Init( &tFileTime ) ) {
-    if ( 0 == pthread_mutex_lock( &g_mutexFileList ) ) {
-      g_mmapFileList.insert( std::pair<time_t, nf_file_list::SFileInfo * >( tFileTime, psoData ) );
-      pthread_mutex_unlock( &g_mutexFileList );
-    }
-  } else {
+		if( 0 == pthread_mutex_lock( &g_mutexFileList ) ) {
+			g_mmapFileList.insert( std::pair<time_t, nf_file_list::SFileInfo * >( tFileTime, psoData ) );
+			pthread_mutex_unlock( &g_mutexFileList );
+		}
+	} else {
 		delete psoData;
 		return EINVAL;
 	}
 
-	int iRetVal = 0;
+	return 0;
 }
 
 nf_file_list::SFileInfo * file_list_get_next_file_info()
@@ -150,84 +150,86 @@ size_t file_list_get_file_size( const nf_file_list::SFileInfo *p_psoFileInfo )
 
 int nf_file_list::SFileInfo::Init( time_t *p_ptFileTime )
 {
-  if ( 0 != m_strFileName.length() ) {
-  } else {
-    return EINVAL;
-  }
+	if( 0 != m_strFileName.length() ) {
+	} else {
+		return EINVAL;
+	}
 
-  int iRetVal = 0;
-  struct stat soStat;
+	int iRetVal = 0;
+	struct stat soStat;
 
-  if ( 0 == stat( m_strFileName.c_str(), &soStat ) ) {
-  } else {
-    return errno;
-  }
+	if( 0 == stat( m_strFileName.c_str(), &soStat ) ) {
+	} else {
+		return errno;
+	}
 
-  const char *pszBaseName;
-  const char *pszFnRes;
-  tm soTm;
-  time_t tTime = static_cast<time_t>( -1 );
+	const char *pszBaseName;
+	const char *pszFnRes;
+	tm soTm;
+	time_t tTime = static_cast< time_t >( -1 );
 
-  memset( &soTm, 0, sizeof( soTm ) );
-  pszBaseName = basename( m_strFileName.c_str() );
-  pszFnRes = strptime( pszBaseName, "nf%Y%m%d%H%M%S.dat.bz2", &soTm );
-  if ( NULL != pszFnRes && *pszFnRes == '\0' ) {
-    tTime = mktime( &soTm );
-  } else {
-    logger_message( 9, "can't to recognize date value '%s' by using format '%s' at '%s'", pszBaseName, "nf%Y%m%d%H%M%S.dat.bz2", pszFnRes );
-  }
+	memset( &soTm, 0, sizeof( soTm ) );
+	pszBaseName = basename( m_strFileName.c_str() );
 
-  if ( tTime != static_cast<time_t>( -1 ) ) {
-  } else {
-    tTime = soStat.st_mtime;
-  }
+	if( NULL != ( pszFnRes = strptime( pszBaseName, "nf%Y%m%d%H%M%S.dat.bz2", &soTm ) ) && *pszFnRes == '\0' ) {
+		tTime = mktime( &soTm );
+	} else if( NULL != ( pszFnRes = strptime( pszBaseName, "C0A8FE12_%Y%m%d%H%M%S.old.bz2", &soTm ) ) && *pszFnRes == '\0' ) {
+		tTime = mktime( &soTm );
+	} else {
+		logger_message( 5, "can't to recognize date value '%s'\n", pszBaseName, pszFnRes );
+	}
 
-  if ( 0 != soStat.st_size && 0 != filter_time_file( tTime ) ) {
-    m_stFileSize = soStat.st_size;
-    *p_ptFileTime = tTime;
-  } else {
-    iRetVal = EINVAL;
-  }
+	if( tTime != static_cast< time_t >( -1 ) ) {
+	} else {
+		tTime = soStat.st_mtime;
+	}
 
-  return iRetVal;
+	if( 0 != soStat.st_size && 0 != filter_time_file( tTime ) ) {
+		m_stFileSize = soStat.st_size;
+		*p_ptFileTime = tTime;
+	} else {
+		iRetVal = EINVAL;
+	}
+
+	return iRetVal;
 }
 
 int file_list_read_directory( const char *p_pszDir, const int p_iRecursive )
 {
-  int iRetVal = 0;
-  DIR *psoDir;
-  struct dirent *psoDirEnt;
+	int iRetVal = 0;
+	DIR *psoDir;
+	struct dirent *psoDirEnt;
 
-  psoDir = opendir( p_pszDir );
-  if ( NULL != psoDir ) {
-    while ( psoDirEnt = readdir( psoDir ) ) {
-      if ( psoDirEnt->d_type == DT_DIR ) {
-        if ( 0 != strcmp( psoDirEnt->d_name, "." ) && 0 != strcmp( psoDirEnt->d_name, ".." ) && 0 != p_iRecursive ) {
-          std::string strPath;
+	psoDir = opendir( p_pszDir );
+	if( NULL != psoDir ) {
+		while( NULL != ( psoDirEnt = readdir( psoDir ) ) ) {
+			if( psoDirEnt->d_type == DT_DIR ) {
+				if( 0 != strcmp( psoDirEnt->d_name, "." ) && 0 != strcmp( psoDirEnt->d_name, ".." ) && 0 != p_iRecursive ) {
+					std::string strPath;
 
-          strPath = p_pszDir;
-          strPath += "/";
-          strPath += psoDirEnt->d_name;
+					strPath = p_pszDir;
+					strPath += "/";
+					strPath += psoDirEnt->d_name;
 
-          file_list_read_directory( strPath.c_str(), p_iRecursive );
-        } else {
-          continue;
-        }
-      } else {
-        std::string strFile;
+					file_list_read_directory( strPath.c_str(), p_iRecursive );
+				} else {
+					continue;
+				}
+			} else {
+				std::string strFile;
 
-        strFile = p_pszDir;
-        strFile += '/';
-        strFile += psoDirEnt->d_name;
+				strFile = p_pszDir;
+				strFile += '/';
+				strFile += psoDirEnt->d_name;
 
-        file_list_add_data_file( strFile.c_str() );
-      }
-    }
-    closedir( psoDir );
-    logger_message( 3, "directory %s was read successfully", p_pszDir );
-  } else {
-    return errno;
-  }
+				file_list_add_data_file( strFile.c_str() );
+			}
+		}
+		closedir( psoDir );
+		logger_message( 5, "directory %s was read successfully\n", p_pszDir );
+	} else {
+		return errno;
+	}
 
-  return iRetVal;
+	return iRetVal;
 }

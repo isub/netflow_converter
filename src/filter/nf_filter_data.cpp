@@ -1,15 +1,14 @@
-#include <string.h>
 
 #include "../util/options.h"
 #include "../mapper/netflow_converter_mapper.h"
 #include "filter_time.h"
 #include "nf_filter_data.h"
 
-bool nf_filter_data( const char *p_pszFieldName, uint64_t p_ui64Data, uint32_t p_ui32Divider )
+bool nf_filter_data( const std::string &p_strFieldName, uint64_t &p_ui64Data, uint32_t p_ui32Divider )
 {
   bool bRetVal = true;
 
-  if ( 0 == strcmp( p_pszFieldName, NF_MAPPER_FLOW_START ) ) {
+  if ( 0 == p_strFieldName.compare( NF_DATA_FILTER_FLOW_START ) ) {
     /* проверяем время начала потока */
     uint32_t ui32Value;
 
@@ -35,7 +34,7 @@ bool nf_filter_data( const char *p_pszFieldName, uint64_t p_ui64Data, uint32_t p
     }
 
     return true;
-  } else if ( 0 == strcmp( p_pszFieldName, NF_MAPPER_SRC_IPV4 ) ) {
+  } else if ( 0 == p_strFieldName.compare( NF_DATA_FILTER_SRC_IPV4 ) ) {
     /* проверяем source ipv4 address */
     uint32_t ui32Value;
 
@@ -50,7 +49,7 @@ bool nf_filter_data( const char *p_pszFieldName, uint64_t p_ui64Data, uint32_t p
     }
 
     return true;
-  } else if ( 0 == strcmp( p_pszFieldName, NF_MAPPER_DST_IPV4 ) ) {
+  } else if ( 0 == p_strFieldName.compare( NF_DATA_FILTER_DST_IPV4 ) ) {
     /* проверяем destination ipv4 address */
     uint32_t ui32Value;
 

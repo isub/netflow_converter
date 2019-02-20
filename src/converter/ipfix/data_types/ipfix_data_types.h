@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "../netflow_data_types.h"
+#include "../../netflow_data_types.h"
 
 #pragma pack(push,1)
 

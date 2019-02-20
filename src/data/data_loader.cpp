@@ -43,11 +43,8 @@ namespace nf_data_loader {
 /* общее количество элементов, которое было открыто */
 static uint32_t g_ui32OpenedFilesCount;
 
-void data_loader_close();
-
 nf_data_loader::SFileInfo * data_loader_open( nf_file_list::SFileInfo *p_psoFileInfo )
 {
-  int iRetVal = 0;
   nf_data_loader::SFileInfo *psoRetVal = new nf_data_loader::SFileInfo( file_list_get_file_name( p_psoFileInfo ) );
 
   psoRetVal->m_iFD = open( psoRetVal->m_pstrFileName->c_str(), O_RDONLY );
@@ -68,12 +65,10 @@ nf_data_loader::SFileInfo * data_loader_open( nf_file_list::SFileInfo *p_psoFile
         }
       }
     } else {
-      iRetVal = errno;
       delete psoRetVal;
       return NULL;
     }
   } else {
-    iRetVal = errno;
     delete psoRetVal;
     return NULL;
   }
@@ -83,39 +78,39 @@ nf_data_loader::SFileInfo * data_loader_open( nf_file_list::SFileInfo *p_psoFile
 
 size_t data_loader_get_data( nf_data_loader::SFileInfo * p_psoFileInfo, const size_t p_stAmount, uint8_t **p_ppData )
 {
-  int stRetVal = 0;
+	size_t stRetVal = 0;
 
-  /* проверяем есть ли еще непрочитанные данные в файле */
-  if ( p_psoFileInfo->m_stFileSize != p_psoFileInfo->m_stFileOffs ) {
-  } else {
-    return 0;
-  }
+	/* проверяем есть ли еще непрочитанные данные в файле */
+	if( p_psoFileInfo->m_stFileSize != p_psoFileInfo->m_stFileOffs ) {
+	} else {
+		return 0;
+	}
 
-  if ( nf_data_loader::m_eNone == p_psoFileInfo->m_eCompressionType ) {
-    stRetVal = ( p_stAmount < p_psoFileInfo->m_stFileSize - p_psoFileInfo->m_stFileOffs ) ? p_stAmount : ( p_psoFileInfo->m_stFileSize - p_psoFileInfo->m_stFileOffs );
-    *p_ppData = reinterpret_cast<uint8_t*>( p_psoFileInfo->m_pvMMap ) + p_psoFileInfo->m_stFileOffs;
-    p_psoFileInfo->m_stFileOffs += stRetVal;
-  } else {
-    if ( NULL != p_psoFileInfo->m_pvDecompressedData ) {
-      free( p_psoFileInfo->m_pvDecompressedData );
-      p_psoFileInfo->m_pvDecompressedData = NULL;
-    }
-    stRetVal = data_loader_bz_get_data( p_psoFileInfo->m_psoBz2Data, p_stAmount, reinterpret_cast<void**>( p_ppData ) );
-    if ( 0 != stRetVal ) {
-      p_psoFileInfo->m_pvDecompressedData = *p_ppData;
-    }
-  }
+	if( nf_data_loader::m_eNone == p_psoFileInfo->m_eCompressionType ) {
+		stRetVal = ( p_stAmount < p_psoFileInfo->m_stFileSize - p_psoFileInfo->m_stFileOffs ) ? p_stAmount : ( p_psoFileInfo->m_stFileSize - p_psoFileInfo->m_stFileOffs );
+		*p_ppData = reinterpret_cast< uint8_t* >( p_psoFileInfo->m_pvMMap ) + p_psoFileInfo->m_stFileOffs;
+		p_psoFileInfo->m_stFileOffs += stRetVal;
+	} else {
+		if( NULL != p_psoFileInfo->m_pvDecompressedData ) {
+			free( p_psoFileInfo->m_pvDecompressedData );
+			p_psoFileInfo->m_pvDecompressedData = NULL;
+		}
+		stRetVal = data_loader_bz_get_data( p_psoFileInfo->m_psoBz2Data, p_stAmount, reinterpret_cast< void** >( p_ppData ) );
+		if( 0 != stRetVal ) {
+			p_psoFileInfo->m_pvDecompressedData = *p_ppData;
+		}
+	}
 
-  p_psoFileInfo->m_stDataWritten += stRetVal;
+	p_psoFileInfo->m_stDataWritten += stRetVal;
 
-  return stRetVal;
+	return stRetVal;
 }
 
 void data_loader_close( nf_data_loader::SFileInfo * p_psoFileInfo )
 {
-  logger_message( 3, "%s: %s operated", __FUNCTION__, p_psoFileInfo->m_pstrFileName->c_str() );
-  logger_message( 5, "%s: %s: have read from disk: %u; have written in buffer: %u", __FUNCTION__, p_psoFileInfo->m_pstrFileName->c_str(), p_psoFileInfo->m_stFileOffs, p_psoFileInfo->m_stDataWritten );
-  delete p_psoFileInfo;
+	logger_message( 5, "%s closed\n", p_psoFileInfo->m_pstrFileName->c_str() );
+	logger_message( 5, "%s: have read from disk: %u; have written in buffer: %u\n", p_psoFileInfo->m_pstrFileName->c_str(), p_psoFileInfo->m_stFileOffs, p_psoFileInfo->m_stDataWritten );
+	delete p_psoFileInfo;
 }
 
 int data_loader_get_total_count_of_opened_files()

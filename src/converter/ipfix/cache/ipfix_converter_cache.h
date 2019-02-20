@@ -5,7 +5,7 @@
 #include <vector>
 #include <unistd.h>
 
-#include "ipfix_data_types.h"
+#include "../data_types/ipfix_data_types.h"
 
 struct SIPFIXTemplateCache;
 struct SIPFIXTemplateFieldList;

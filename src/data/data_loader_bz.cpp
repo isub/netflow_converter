@@ -19,7 +19,7 @@ struct SDataBulk {
   void *m_pvData;
   size_t m_stSize;
   SDataBulk( void *p_pvData, size_t p_stSize ) : m_pvData( p_pvData ), m_stSize( p_stSize ) { }
-  ~SDataBulk() { logger_message( 9, "Data Bulk released" ); }
+  ~SDataBulk() { logger_message( 9, "Data Bulk released\n" ); }
 };
 
 nf_data_loader_bz::SBz2Data * data_loader_bz_init( const void *p_pvData, const size_t p_stSize )
