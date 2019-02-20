@@ -213,12 +213,12 @@ static void options_issue()
 	logger_message( 0, "\t\tsourceIPv4Address - ipv4-адрес источника\n" );
 	logger_message( 0, "\t\tdestinationIPv4Address - ipv4-адрес получателя\n" );
 	logger_message( 0, "\tнапример, в конфигурационном файле заданы следующие параметры:\n" );
-	logger_message( 0, "\t\toutputFormatDate = \"\%Y.\%m.\%d_\%H:\%M:\%S\";\n" );
+	logger_message( 0, "\t\toutputFormatDate = \"%%Y.%%m.%%d_%%H:%%M:%%S\";\n" );
 	logger_message( 0, "\t\toutputFormatDateAdd = \"msec\";\n" );
 	logger_message( 0, "\t\tconverterOutputTemplate = { \"Дядя Вася\"; };\n" );
 	logger_message( 0, "\t\tconverterMapper = { 10; \"flowStartMilliseconds\"; \"Дядя Вася\"; 1000; };\n" );
 	logger_message( 0, "\tпроцедура маппинга получив на входе значение flowStartMilliseconds=1550672116123\n" );
-	logger_message( 0, "\tпреобразует его согласно шаблону outputFormatDate=\"\%Y.\%m.\%d_\%H:\%M:\%S\" в \"20.02.2019_14:15:16\"\n" );
+	logger_message( 0, "\tпреобразует его согласно шаблону outputFormatDate=\"%%Y.%%m.%%d_%%H:%%M:%%S\" в \"20.02.2019_14:15:16\"\n" );
 	logger_message( 0, "\tзатем, в соответсвии с параметром outputFormatDateAdd=\"msec\" допишет к полученной строке \":123\"\n" );
 	logger_message( 0, "\tв итоге получим \"20.02.2019_14:15:16:123\"\n" );
 	logger_message( 0, "\tимя атрибута, согласно параметру converterMapper = { 10; \"flowStartMilliseconds\"; \"Дядя Вася\"; 1000; };\n" );
