@@ -11,35 +11,36 @@
 
 struct SOptions {
   /* уровень логгировани сообщений */
-  int m_iVerbosityLevel;
-  /* директории с исходными данными */
-  struct {
-    std::set<std::string> m_setDirList;
-    int m_iRecursive;
-  } m_soDataDir;
-  /* параметры фильтра по времени */
-  struct {
-    std::string m_strFormat;
-    time_t m_tmFlowStart;
-    time_t m_tmFlowStop;
-    time_t m_tmToleranceBefore;
-    time_t m_tmToleranceAfter;
-  } m_soFilterTime;
-  /* параметры фильтра по ip-адресам */
-  struct {
-    uint32_t m_ui32AddrSrc;
-    uint32_t m_ui32AddrDst;
-  } m_soFilterAddress;
-  /* параметры вывода результатов */
-  struct {
-    std::string m_strOutputFormatDate;
-    std::string m_strOutputFormatDateAdd;
-  } m_soOutputFormat;
-  struct {
-    uint32_t m_ui32ThreadCount;
-	std::string m_strConfFile;
-	std::string m_strResultFile;
-  } m_soConverter;
+	int m_iVerbosityLevel;
+	/* директории с исходными данными */
+	struct {
+		int m_iDefinedInCLI;
+		std::set<std::string> m_setDirList;
+		int m_iRecursive;
+	} m_soDataDir;
+	/* параметры фильтра по времени */
+	struct {
+		std::string m_strFormat;
+		time_t m_tmFlowStart;
+		time_t m_tmFlowStop;
+		time_t m_tmToleranceBefore;
+		time_t m_tmToleranceAfter;
+	} m_soFilterTime;
+	/* параметры фильтра по ip-адресам */
+	struct {
+		uint32_t m_ui32AddrSrc;
+		uint32_t m_ui32AddrDst;
+	} m_soFilterAddress;
+	/* параметры вывода результатов */
+	struct {
+		std::string m_strOutputFormatDate;
+		std::string m_strOutputFormatDateAdd;
+	} m_soOutputFormat;
+	struct {
+		uint32_t m_ui32ThreadCount;
+		std::string m_strConfFile;
+		std::string m_strResultFile;
+	} m_soConverter;
 };
 
 extern SOptions *g_psoOpt;

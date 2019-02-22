@@ -179,78 +179,100 @@ converterVerbosity:		CONVERTER_VERBOSITY '=' INTEGER ';'
 
 dataDir:		DATA_DIR '=' QSTRING ';'
 			{
-				g_psoOpt->m_soDataDir.m_setDirList.insert( std::string( $3 ) );
-				logger_message( 3, "%s = \"%s\";\n", "dataDir", $3 );
+				if( 0 == g_psoOpt->m_soDataDir.m_iDefinedInCLI ) {
+					g_psoOpt->m_soDataDir.m_setDirList.insert( std::string( $3 ) );
+					logger_message( 3, "%s = \"%s\";\n", "dataDir", $3 );
+				}
 			}
 			;
 
 dataDirRecursive:		DATA_DIR_RECURSIVE ';'
 			{
-				g_psoOpt->m_soDataDir.m_iRecursive = 1;
-				logger_message( 3, "%s\n", "dataDirRecursive" );
+				if( -1 == g_psoOpt->m_soDataDir.m_iRecursive ) {
+					g_psoOpt->m_soDataDir.m_iRecursive = 1;
+					logger_message( 3, "%s\n", "dataDirRecursive" );
+				}
 			}
 			;
 
 filterTimeFormat:		FILTER_TIME_FORMAT '=' QSTRING ';'
 			{
-				g_psoOpt->m_soFilterTime.m_strFormat.assign( $3 );
-				logger_message( 3, "%s = \"%s\";\n", "filterTimeFormat", $3 );
+				if( 0 == g_psoOpt->m_soFilterTime.m_strFormat.size() ) {
+					g_psoOpt->m_soFilterTime.m_strFormat.assign( $3 );
+					logger_message( 3, "%s = \"%s\";\n", "filterTimeFormat", $3 );
+				}
 			}
 			;
 
 filterTimeStart:		FILTER_TIME_START '=' QSTRING ';'
 			{
-				options_str_to_time( $3, &g_psoOpt->m_soFilterTime.m_tmFlowStart );
-				logger_message( 3, "%s = \"%s\";\n", "filterTimeStart", $3 );
+				if( 0 == g_psoOpt->m_soFilterTime.m_tmFlowStart ) {
+					options_str_to_time( $3, &g_psoOpt->m_soFilterTime.m_tmFlowStart );
+					logger_message( 3, "%s = \"%s\";\n", "filterTimeStart", $3 );
+				}
 			}
 			;
 
 filterTimeStop:		FILTER_TIME_STOP '=' QSTRING ';'
 			{
-				options_str_to_time( $3, &g_psoOpt->m_soFilterTime.m_tmFlowStop );
-				logger_message( 3, "%s = \"%s\";\n", "filterTimeStop", $3 );
+				if( 0 == g_psoOpt->m_soFilterTime.m_tmFlowStop ) {
+					options_str_to_time( $3, &g_psoOpt->m_soFilterTime.m_tmFlowStop );
+					logger_message( 3, "%s = \"%s\";\n", "filterTimeStop", $3 );
+				}
 			}
 			;
 
 filterTimeToleranceBefore:		FILTER_TIME_TOLERANCE_BEFORE '=' INTEGER ';'
 			{
-				g_psoOpt->m_soFilterTime.m_tmToleranceBefore = $3;
-				logger_message( 3, "%s = %d;\n", "filterTimeToleranceBefore", $3 );
+				if( 0 == g_psoOpt->m_soFilterTime.m_tmToleranceBefore ) {
+					g_psoOpt->m_soFilterTime.m_tmToleranceBefore = $3;
+					logger_message( 3, "%s = %d;\n", "filterTimeToleranceBefore", $3 );
+				}
 			}
 			;
 
 filterTimeToleranceAfter:		FILTER_TIME_TOLERANCE_AFTER '=' INTEGER ';'
 			{
-				g_psoOpt->m_soFilterTime.m_tmToleranceAfter = $3;
-				logger_message( 3, "%s = %d;\n", "filterTimeToleranceAfter", $3 );
+				if( 0 == g_psoOpt->m_soFilterTime.m_tmToleranceAfter ) {
+					g_psoOpt->m_soFilterTime.m_tmToleranceAfter = $3;
+					logger_message( 3, "%s = %d;\n", "filterTimeToleranceAfter", $3 );
+				}
 			}
 			;
 
 filterAddrSrc:		FILTER_ADDR_SRC '=' QSTRING ';'
 			{
-				options_str_to_addr( $3, &g_psoOpt->m_soFilterAddress.m_ui32AddrSrc );
-				logger_message( 3, "%s = \"%s\";\n", "filterAddrSrc", $3 );
+				if( 0 == g_psoOpt->m_soFilterAddress.m_ui32AddrSrc ) {
+					options_str_to_addr( $3, &g_psoOpt->m_soFilterAddress.m_ui32AddrSrc );
+					logger_message( 3, "%s = \"%s\";\n", "filterAddrSrc", $3 );
+				}
 			}
 			;
 
 filterAddrDst:		FILTER_ADDR_DST '=' QSTRING ';'
 			{
-				options_str_to_addr( $3, &g_psoOpt->m_soFilterAddress.m_ui32AddrDst );
-				logger_message( 3, "%s = \"%s\";\n", "filterAddrDst", $3 );
+				if( 0 == g_psoOpt->m_soFilterAddress.m_ui32AddrDst ) {
+					options_str_to_addr( $3, &g_psoOpt->m_soFilterAddress.m_ui32AddrDst );
+					logger_message( 3, "%s = \"%s\";\n", "filterAddrDst", $3 );
+				}
 			}
 			;
 
 outputFormatDate:		OUTPUT_FORMAT_DATE '=' QSTRING ';'
 			{
-				g_psoOpt->m_soOutputFormat.m_strOutputFormatDate.assign( $3 );
-				logger_message( 3, "%s = \"%s\";\n", "outputFormatDate", $3 );
+				if( 0 == g_psoOpt->m_soOutputFormat.m_strOutputFormatDate.size() ) {
+					g_psoOpt->m_soOutputFormat.m_strOutputFormatDate.assign( $3 );
+					logger_message( 3, "%s = \"%s\";\n", "outputFormatDate", $3 );
+				}
 			}
 			;
 
 outputFormatDateAdd:		OUTPUT_FORMAT_DATE_ADD '=' QSTRING ';'
 			{
-				g_psoOpt->m_soOutputFormat.m_strOutputFormatDateAdd.assign( $3 );
-				logger_message( 3, "%s = \"%s\";\n", "outputFormatDateAdd", $3 );
+				if( 0 == g_psoOpt->m_soOutputFormat.m_strOutputFormatDateAdd.size() ) {
+					g_psoOpt->m_soOutputFormat.m_strOutputFormatDateAdd.assign( $3 );
+					logger_message( 3, "%s = \"%s\";\n", "outputFormatDateAdd", $3 );
+				}
 			}
 			;
 
@@ -297,7 +319,9 @@ converterMapperInfoElement:
 
 converterResultFile:		CONVERTER_RESUL_FILE '=' QSTRING ';'
 			{
-				g_psoOpt->m_soConverter.m_strResultFile.assign( $3 );
-				logger_message( 3, "%s = \"%s\";\n", "converterResultFile", $3 );
+				if( 0 == g_psoOpt->m_soConverter.m_strResultFile.size() ) {
+					g_psoOpt->m_soConverter.m_strResultFile.assign( $3 );
+					logger_message( 3, "%s = \"%s\";\n", "converterResultFile", $3 );
+				}
 			}
 			;

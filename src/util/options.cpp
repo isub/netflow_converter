@@ -56,6 +56,7 @@ int options_read_options( int argc, char *argv [] )
 						break;
 					case 1:
 						g_soOptions.m_soDataDir.m_setDirList.insert( std::string( optarg ) );
+						g_soOptions.m_soDataDir.m_iDefinedInCLI = 1;
 						break;
 					case 2:
 						g_soOptions.m_soDataDir.m_iRecursive = 1;
@@ -117,7 +118,8 @@ void options_init()
 {
 	g_soOptions.m_iVerbosityLevel = 0;
 
-	g_soOptions.m_soDataDir.m_iRecursive = 0;
+	g_soOptions.m_soDataDir.m_iDefinedInCLI = 0;
+	g_soOptions.m_soDataDir.m_iRecursive = -1;
 
 	g_soOptions.m_soFilterTime.m_tmFlowStart = 0;
 	g_soOptions.m_soFilterTime.m_tmFlowStop = static_cast< time_t >( -1 );
@@ -185,7 +187,7 @@ static void options_issue()
 	logger_message( 0, "\tdataDirRecursive - если задан этот параметр конвертор будет осуществлять поиск файлов с исходными данными во вложенных директориях\n" );
 	logger_message( 0, "\tfilterTimeFormat=<формат времени> - формат представления времени для фильтра. Используется для преобразования значений, заданных параметрами filterTimeStart и filterTimeStop\n" );
 	logger_message( 0, "\tfilterTimeStart=<время начала потока> - время начала потока. Используется для выборки данных из файлов с исходными данными, а так же для отбора файлов с исходными данными\n" );
-	logger_message( 0, "\tfilterTimeStop=<время окончания потока> - время окончания потока (см. описание параметра filterTimeStart)\n" );
+	logger_message( 0, "\tfilterTimeStop=<время окончания потока> - время окончания потока (используется по аналогии с параметром filterTimeStart)\n" );
 	logger_message( 0, "\tfilterTimeToleranceBefore=<корректировочное значение> - временной интервал (в сек). Корректировочное значение вычитается из значения, полученного в параметре filterTimeStart. Используется только при отборе файлов с исходными данными\n" );
 	logger_message( 0, "\tfilterTimeToleranceAfter=<корректировочное значение> - временной интервал (в сек). Корректировочное значение прибавляется к значению, полученному в параметре filterTimeStop. Используется только при отборе файлов с исходными данными\n" );
 	logger_message( 0, "\tfilterAddrSrc=<ip-адрес> - ip-адрес источника. Используется фильтром для выборки записей\n" );
@@ -203,9 +205,9 @@ static void options_issue()
 	logger_message( 0, "\tпервый параметр из списка, заключенного в фигурные скобки, - номер протокола netFlow;\n" );
 	logger_message( 0, "\tвторой - имя атрибута согласно спецификации;\n" );
 	logger_message( 0, "\tтретий - измененное значение имени атрибута для приведения в соответсвии с именами атрибутов в нотации шаблона вывода и фильтров\n" );
-	logger_message( 0, "\txtчетвертый - делитель (для секунд - 1, для миллисекунд - 1000 и т.д.)\n" );
+	logger_message( 0, "\tчетвертый - делитель (для секунд - 1, для миллисекунд - 1000 и т.д.)\n" );
 	logger_message( 0, "Что надо знать для правильной настройки конвертора:\n" );
-	logger_message( 0, "\tшаблон вывода и фильтр работает с именами атрибутов, обработанных предварительно процедурой маппинга\n" );
+	logger_message( 0, "\tшаблон вывода и фильтр работает с именами атрибутов, предварительно обработанных процедурой маппинга\n" );
 	logger_message( 0, "\tшаблон вывода поддерживает произвольные имена атрибутов:\n" );
 	logger_message( 0, "\tфильтр, напротив, работает с ограниченным перечнем унифицированных имен атрибутов:\n" );
 	logger_message( 0, "\t\tflowStart - время начала потока в секундах\n" );
@@ -236,4 +238,18 @@ static void options_issue()
 	logger_message( 0, "\tв этом случае мы увидим в результатах выборки такие записи:\n" );
 	logger_message( 0, "\t\tflowStart\n" );
 	logger_message( 0, "\t\t20.02.2019_14:15:16:123\n" );
+	logger_message( 0, "следующие параметры командной строки переопределяют значения, заданные в конфигурационном файле:\n" );
+	logger_message( 0, "\t- dataDir\n" );
+	logger_message( 0, "\t- dataDirRecursive\n" );
+	logger_message( 0, "\t- filterTimeFormat\n" );
+	logger_message( 0, "\t- filterTimeStart\n" );
+	logger_message( 0, "\t- filterTimeStop\n" );
+	logger_message( 0, "\t- filterTimeToleranceBefore\n" );
+	logger_message( 0, "\t- filterTimeToleranceAfter\n" );
+	logger_message( 0, "\t- filterAddrSrc\n" );
+	logger_message( 0, "\t- filterAddrDst\n" );
+	logger_message( 0, "\t- outputFormatDate\n" );
+	logger_message( 0, "\t- outputFormatDateAdd\n" );
+	logger_message( 0, "\t- converterThreadCount\n" );
+	logger_message( 0, "\t- converterResultFile\n" );
 }

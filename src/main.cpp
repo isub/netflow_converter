@@ -43,7 +43,7 @@ int main( int argc, char *argv [] )
 	iRetVal = ipfix_dict_iana_init();
 	iRetVal = nfv9_dict_init();
 
-	iRetVal = file_list_init( &g_psoOpt->m_soDataDir.m_setDirList, g_psoOpt->m_soDataDir.m_iRecursive );
+	iRetVal = file_list_init( &g_psoOpt->m_soDataDir.m_setDirList, g_psoOpt->m_soDataDir.m_iRecursive == -1 ? 0 : g_psoOpt->m_soDataDir.m_iRecursive );
 
 	iRetVal = netflow_converter_init();
 
