@@ -6,6 +6,10 @@
 
 #include <errno.h>
 
+#include "../../util/options.h"
+
+extern SOptions *g_psoOpt;
+
 #include "../nfc_dict.h"
 #include "../netflow_data_types.h"
 #include "data_types/ipfix_data_types.h"
@@ -27,11 +31,12 @@ int ipfix_converter_convert_packet( nf_data_loader::SFileInfo *psoDataLoader )
     soIPFIXHdr.m_ui32ExportTime = ntohl( soIPFIXHdr.m_ui32ExportTime );
     soIPFIXHdr.m_ui32SequenceNumber = ntohl( soIPFIXHdr.m_ui32SequenceNumber );
     soIPFIXHdr.m_ui32ObservDomainId = ntohl( soIPFIXHdr.m_ui32ObservDomainId );
-#ifdef DEBUG
-	std::string strTimeValue;
-	nfc_dict_get_time_value( 1, static_cast< uint64_t >( soIPFIXHdr.m_ui32ExportTime ), &strTimeValue );
-	logger_message( 9, "%s: length: %u; export time: %s; sequence number: %u; observation domain: %#010x\n", __FUNCTION__, soIPFIXHdr.m_ui16Length, strTimeValue.c_str(), soIPFIXHdr.m_ui32SequenceNumber, soIPFIXHdr.m_ui32ObservDomainId );
-#endif
+
+	if( g_psoOpt->m_iVerbosityLevel >= 5 ) {
+		std::string strTimeValue;
+		nfc_dict_get_time_value( 1, static_cast< uint64_t >( soIPFIXHdr.m_ui32ExportTime ), &strTimeValue );
+		logger_message( 5, "%s: length: %u; export time: %s; sequence number: %u; observation domain: %#010x\n", __FUNCTION__, soIPFIXHdr.m_ui16Length, strTimeValue.c_str(), soIPFIXHdr.m_ui32SequenceNumber, soIPFIXHdr.m_ui32ObservDomainId );
+	}
   } else {
     return EINVAL;
   }

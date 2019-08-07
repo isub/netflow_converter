@@ -3,37 +3,38 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include "../../util/logger.h"
-#include "ipfix_data_types.h"
+#include "../../../util/logger.h"
+#include "../data_types/ipfix_data_types.h"
 #include "ipfix_converter_cache.h"
 
-/* значение этой структуры используется в качестве ключа в ассоциативном списке */
+/* Р·РЅР°С‡РµРЅРёРµ СЌС‚РѕР№ СЃС‚СЂСѓРєС‚СѓСЂС‹ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РІ РєР°С‡РµСЃС‚РІРµ РєР»СЋС‡Р° РІ Р°СЃСЃРѕС†РёР°С‚РёРІРЅРѕРј СЃРїРёСЃРєРµ */
 struct SIPFIXTemplateCache {
-  uint32_t m_ui32ObservationDomain;
-  uint16_t m_ui16TemplateId;
-  SIPFIXTemplateFieldList *m_psoFieldList;
-  bool operator < ( const SIPFIXTemplateCache &p_soRight ) const;
-  SIPFIXTemplateCache( uint32_t p_ui32ObservDomainId, uint16_t p_ui16TemplateId );
-  SIPFIXTemplateCache( uint32_t p_ui32ObservDomainId, uint16_t p_ui16TemplateId, SIPFIXTemplateFieldList *p_pvectFieldList );
+	uint32_t m_ui32ObservationDomain;
+	uint16_t m_ui16TemplateId;
+	bool operator < ( const SIPFIXTemplateCache &p_soRight ) const;
+	SIPFIXTemplateCache( const uint32_t p_ui32ObservDomainId, const uint16_t p_ui16TemplateId )
+		: m_ui32ObservationDomain( p_ui32ObservDomainId ), m_ui16TemplateId( p_ui16TemplateId ) { }
 };
 
-/* значения этих структур используются в качестве значений в ассоциативном списке */
+/* Р·РЅР°С‡РµРЅРёСЏ СЌС‚РёС… СЃС‚СЂСѓРєС‚СѓСЂ РёСЃРїРѕР»СЊР·СѓСЋС‚СЃСЏ РІ РєР°С‡РµСЃС‚РІРµ Р·РЅР°С‡РµРЅРёР№ РІ Р°СЃСЃРѕС†РёР°С‚РёРІРЅРѕРј СЃРїРёСЃРєРµ */
 struct SIPFIXTemplateField {
   SIPFIXField m_soField;
   off_t m_stOffset;
-  SIPFIXTemplateField( SIPFIXField &p_soField, off_t p_stOffset );
+  bool operator == ( const SIPFIXTemplateField &p_soRight ) const;
+  SIPFIXTemplateField( SIPFIXField &p_soField, off_t p_stOffset ) : m_soField( p_soField ), m_stOffset( p_stOffset ) { }
 };
 
 struct SIPFIXTemplateFieldList {
-  uint16_t m_ui16FieldCount;
-  size_t   m_stDataSetLength;
-  std::vector< SIPFIXTemplateField> m_vectFieldList;
-  void AddField( SIPFIXField &p_soIPFIXField );
-  SIPFIXTemplateFieldList() : m_ui16FieldCount( 0 ), m_stDataSetLength( 0 ) { }
+	size_t   m_stDataSetLength;
+	std::vector< SIPFIXTemplateField > m_vectFieldList;
+	void AddField( SIPFIXField &p_soIPFIXField );
+	bool operator == ( const SIPFIXTemplateFieldList &p_soRight ) const;
+	SIPFIXTemplateFieldList() : m_stDataSetLength( 0 ) { }
+	~SIPFIXTemplateFieldList() { m_vectFieldList.clear(); }
 };
 
 static pthread_rwlock_t g_tIPFIXCacheMutex;
-static std::map< SIPFIXTemplateCache, SIPFIXTemplateFieldList* > g_umapTemplateCache;
+static std::map< SIPFIXTemplateCache, SIPFIXTemplateFieldList* > g_mapTemplateCache;
 
 static int ipfix_converter_template_cache_rd_lock();
 static int ipfix_converter_template_cache_wr_lock();
@@ -53,120 +54,140 @@ void ipfix_converter_cache_fin()
   pthread_rwlock_destroy( &g_tIPFIXCacheMutex );
 }
 
-SIPFIXTemplateCache * ipfix_converter_create_template( uint32_t p_ui32ObservDomainId, uint16_t p_ui16TemplateId )
+SIPFIXTemplateCache * ipfix_converter_create_template( const uint32_t p_ui32ObservDomainId, const uint16_t p_ui16TemplateId )
 {
-  SIPFIXTemplateCache *psoRetVal;
-  int iFnRes;
-  SIPFIXTemplateCache soTemplate( p_ui32ObservDomainId, p_ui16TemplateId, NULL );
-  std::map< SIPFIXTemplateCache, SIPFIXTemplateFieldList* >::iterator iter;
-
-  if ( 0 == ( iFnRes = ipfix_converter_template_cache_rd_lock() ) ) {
-  } else {
-    /* ошибка блокировки мьютекса */
-    return NULL;
-  }
-
-  iter = g_umapTemplateCache.find( soTemplate );
-  if ( iter != g_umapTemplateCache.end() ) {
-    psoRetVal = NULL;
-  } else {
-    psoRetVal = new SIPFIXTemplateCache( p_ui32ObservDomainId, p_ui16TemplateId );
-  }
-
-  if ( 0 == ( iFnRes = ipfix_converter_template_cache_unlock() ) ) {
-  } else {
-    /* ошибка разблокировки мьютекса */
-  }
-
-  return psoRetVal;
+	return ( new SIPFIXTemplateCache( p_ui32ObservDomainId, p_ui16TemplateId ) );
 }
 
-void ipfix_converter_add_template_field( SIPFIXTemplateCache *p_psoIPFIXTemplateCache, SIPFIXField &p_soIPFIXField )
+SIPFIXTemplateFieldList * ipfix_converter_create_template_fieldList()
 {
-  p_psoIPFIXTemplateCache->m_psoFieldList->AddField( p_soIPFIXField );
+	return ( new SIPFIXTemplateFieldList );
 }
 
-int ipfix_converter_add_template( SIPFIXTemplateCache * p_psoIPFIXTemplateCache )
+void ipfix_converter_add_template_field( SIPFIXTemplateFieldList *p_psoIPFIXTemplateFieldList, SIPFIXField &p_soIPFIXField )
 {
-  int iRetVal = 0;
-  int iFnRes;
-  SIPFIXTemplateCache soTemplate( p_psoIPFIXTemplateCache->m_ui32ObservationDomain, p_psoIPFIXTemplateCache->m_ui16TemplateId, NULL );
-  std::pair < std::map< SIPFIXTemplateCache, SIPFIXTemplateFieldList* >::iterator, bool> insertResult;
+	p_psoIPFIXTemplateFieldList->AddField( p_soIPFIXField );
+}
 
-  if ( 0 == ( iFnRes = ipfix_converter_template_cache_wr_lock() ) ) {
-  } else {
-    /* ошибка блокировки мьютекса */
-    return iFnRes;
-  }
+int ipfix_converter_add_template( SIPFIXTemplateCache * p_psoIPFIXTemplateCache, SIPFIXTemplateFieldList *p_psoFieldList )
+{
+	int iRetVal = 0;
+	int iFnRes;
+	std::map< SIPFIXTemplateCache, SIPFIXTemplateFieldList * >::iterator iter;
 
-  insertResult = g_umapTemplateCache.insert( std::pair<SIPFIXTemplateCache, SIPFIXTemplateFieldList* >( soTemplate, p_psoIPFIXTemplateCache->m_psoFieldList ) );
-  if ( insertResult.second ) {
-  } else {
-    delete p_psoIPFIXTemplateCache->m_psoFieldList;
-    iRetVal = EALREADY;
-  }
+	if( 0 == ( iFnRes = ipfix_converter_template_cache_wr_lock() ) ) {
+	} else {
+		/* РѕС€РёР±РєР° Р±Р»РѕРєРёСЂРѕРІРєРё РјСЊСЋС‚РµРєСЃР° */
+		return iFnRes;
+	}
 
-  if ( 0 == ( iFnRes = ipfix_converter_template_cache_unlock() ) ) {
-  } else {
-    /* ошибка разблокировки мьютекса */
-  }
+	iter = g_mapTemplateCache.find( *p_psoIPFIXTemplateCache );
+	if( iter == g_mapTemplateCache.end() ) {
+		/* there is no template in the cache */
+		logger_message( 5,
+			"this is a new template %u [field count: %u] for observation domain %#010x\n",
+			p_psoIPFIXTemplateCache->m_ui16TemplateId, p_psoFieldList->m_vectFieldList.size(), p_psoIPFIXTemplateCache->m_ui32ObservationDomain );
+		g_mapTemplateCache.insert( std::pair<SIPFIXTemplateCache, SIPFIXTemplateFieldList *>( *p_psoIPFIXTemplateCache, p_psoFieldList ) );
+	} else {
+		if( ( *p_psoFieldList ) == ( *( iter->second ) ) ) {
+			delete p_psoFieldList;
+			iRetVal = EALREADY;
+		} else {
+			logger_message( 5,
+				"old template: %u[%u]:%#010x; new template: %u[%u]:%#010x\n",
+				iter->first.m_ui16TemplateId, iter->second->m_vectFieldList.size(), iter->first.m_ui32ObservationDomain,
+				p_psoIPFIXTemplateCache->m_ui16TemplateId, p_psoFieldList->m_vectFieldList.size(), p_psoIPFIXTemplateCache->m_ui32ObservationDomain );
+			delete &( *iter->second );
+			iter->second = p_psoFieldList;
+		}
+	}
 
-  delete p_psoIPFIXTemplateCache;
+	if( 0 == ( iFnRes = ipfix_converter_template_cache_unlock() ) ) {
+	} else {
+		/* РѕС€РёР±РєР° СЂР°Р·Р±Р»РѕРєРёСЂРѕРІРєРё РјСЊСЋС‚РµРєСЃР° */
+	}
 
-  return iRetVal;
+	delete p_psoIPFIXTemplateCache;
+
+	return iRetVal;
 }
 
 bool SIPFIXTemplateCache::operator < ( const SIPFIXTemplateCache &p_soRight ) const
 {
-  if ( m_ui32ObservationDomain < p_soRight.m_ui32ObservationDomain ) {
-    return true;
-  } else {
-    return false;
-  }
+	if( m_ui32ObservationDomain < p_soRight.m_ui32ObservationDomain ) {
+		return true;
+	}
 
-  if ( m_ui32ObservationDomain == p_soRight.m_ui32ObservationDomain ) {
-  } else {
-    return false;
-  }
+	if( m_ui32ObservationDomain > p_soRight.m_ui32ObservationDomain ) {
+		return false;
+	}
 
-  if ( m_ui16TemplateId < p_soRight.m_ui16TemplateId ) {
-    return true;
-  } else {
-    return true;
-  }
+	if( m_ui16TemplateId < p_soRight.m_ui16TemplateId ) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool SIPFIXTemplateFieldList::operator == ( const SIPFIXTemplateFieldList &p_soRight ) const
+{
+	if( m_vectFieldList.size() == p_soRight.m_vectFieldList.size() ) {
+	} else {
+		return false;
+	}
+
+	for( size_t stInd = 0; stInd < m_vectFieldList.size(); ++stInd ) {
+		if( m_vectFieldList[ stInd ] == p_soRight.m_vectFieldList[ stInd ] ) {
+		} else {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 SIPFIXTemplateFieldList * ipfix_converter_get_field_list( uint32_t p_ui32ObservDomainId, uint16_t p_ui16TemplateId )
 {
-  SIPFIXTemplateFieldList * psoRetVal;
-  int iFnRes;
-  SIPFIXTemplateCache soTemplate ( p_ui32ObservDomainId, p_ui16TemplateId, NULL );
-  std::map< SIPFIXTemplateCache, SIPFIXTemplateFieldList* >::iterator iter;
+	SIPFIXTemplateFieldList * psoRetVal;
+	int iFnRes;
+	SIPFIXTemplateCache soTemplate( p_ui32ObservDomainId, p_ui16TemplateId );
+	std::map< SIPFIXTemplateCache, SIPFIXTemplateFieldList * >::iterator iter;
 
-  if ( 0 == ( iFnRes = ipfix_converter_template_cache_rd_lock() ) ) {
-  } else {
-    /* ошибка блокировки мьютекса */
-    return NULL;
-  }
+	if( 0 == ( iFnRes = ipfix_converter_template_cache_rd_lock() ) ) {
+	} else {
+		/* РѕС€РёР±РєР° Р±Р»РѕРєРёСЂРѕРІРєРё РјСЊСЋС‚РµРєСЃР° */
+		return NULL;
+	}
 
-  iter = g_umapTemplateCache.find( soTemplate );
-  if ( iter != g_umapTemplateCache.end() ) {
-    psoRetVal = iter->second;
-  } else {
-    psoRetVal = NULL;
-  }
+	iter = g_mapTemplateCache.find( soTemplate );
+	if( iter != g_mapTemplateCache.end() ) {
+		psoRetVal = iter->second;
+		logger_message( 5,
+			"%s: selected template: %u[%u]:%#010x\n",
+			__FUNCTION__, iter->first.m_ui16TemplateId, iter->second->m_vectFieldList.size(), iter->first.m_ui32ObservationDomain );
+	} else {
+		psoRetVal = NULL;
+	}
 
-  if ( 0 == ( iFnRes = ipfix_converter_template_cache_unlock() ) ) {
-  } else {
-    /* ошибка разблокировки мьютекса */
-  }
+	if( 0 == ( iFnRes = ipfix_converter_template_cache_unlock() ) ) {
+	} else {
+		/* РѕС€РёР±РєР° СЂР°Р·Р±Р»РѕРєРёСЂРѕРІРєРё РјСЊСЋС‚РµРєСЃР° */
+	}
 
-  return psoRetVal;
+	return psoRetVal;
 }
 
 uint16_t ipfix_converter_get_field_count( SIPFIXTemplateFieldList * p_psoFieldList )
 {
-  return p_psoFieldList->m_ui16FieldCount;
+	uint16_t ui16RetVal;
+
+	ipfix_converter_template_cache_rd_lock();
+
+	ui16RetVal = p_psoFieldList->m_vectFieldList.size();
+
+	ipfix_converter_template_cache_unlock();
+
+	return ui16RetVal;
 }
 
 size_t ipfix_converter_get_data_set_length( SIPFIXTemplateFieldList * p_psoFieldList )
@@ -202,25 +223,25 @@ static int ipfix_converter_template_cache_unlock()
   return pthread_rwlock_unlock( &g_tIPFIXCacheMutex );
 }
 
-SIPFIXTemplateCache::SIPFIXTemplateCache( uint32_t p_ui32ObservDomainId, uint16_t p_ui16TemplateId )
-  : m_ui32ObservationDomain( p_ui32ObservDomainId ), m_ui16TemplateId( p_ui16TemplateId )
-{
-  m_psoFieldList = new SIPFIXTemplateFieldList;
-}
-
-SIPFIXTemplateCache::SIPFIXTemplateCache( uint32_t p_ui32ObservDomainId, uint16_t p_ui16TemplateId, SIPFIXTemplateFieldList *p_psoFieldList )
-  : m_ui32ObservationDomain( p_ui32ObservDomainId ), m_ui16TemplateId( p_ui16TemplateId ), m_psoFieldList( p_psoFieldList )
-{ }
-
 void SIPFIXTemplateFieldList::AddField( SIPFIXField &p_soIPFIXField )
 {
-  ++ m_ui16FieldCount;
-  SIPFIXTemplateField soTmplsFld( p_soIPFIXField, m_stDataSetLength );
-  m_stDataSetLength += p_soIPFIXField.m_soFieldCommon.m_ui16FieldLength;
+	SIPFIXTemplateField soTmplsFld( p_soIPFIXField, m_stDataSetLength );
+	m_stDataSetLength += p_soIPFIXField.m_soFieldCommon.m_ui16FieldLength;
 
-  m_vectFieldList.push_back( soTmplsFld );
+	m_vectFieldList.push_back( soTmplsFld );
 }
 
-SIPFIXTemplateField::SIPFIXTemplateField( SIPFIXField &p_soField, off_t p_stOffset )
-  : m_soField( p_soField ), m_stOffset( p_stOffset )
-{ }
+bool SIPFIXTemplateField::operator == ( const SIPFIXTemplateField &p_soRight ) const
+{
+	if( m_soField == p_soRight.m_soField ) {
+	} else {
+		return false;
+	}
+
+	if( m_stOffset == p_soRight.m_stOffset ) {
+	} else {
+		return false;
+	}
+
+	return true;
+}

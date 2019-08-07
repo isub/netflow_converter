@@ -2,8 +2,6 @@
 #include <string>
 
 #include "../util/logger.h"
-#include "../converter/ipfix/mapper/ipfix_mapper.h"
-#include "../converter/nfv9/mapper/nfv9_mapper.h"
 #include "netflow_converter_mapper.h"
 
 struct SMapper {

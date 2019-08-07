@@ -40,6 +40,12 @@ static volatile int g_iStarted;
 
 static pthread_mutex_t g_mutexFileList;
 
+/*
+ *	добавляет новый файл для обработки
+ *	p_pszFileName - имя файла
+ */
+static int file_list_add_data_file( const char *p_pszFileName );
+
 /* обход всех директорий */
 static int file_list_read_directory( const char *p_pszDir, const int p_iRecursive );
 
@@ -194,7 +200,7 @@ int nf_file_list::SFileInfo::Init( time_t *p_ptFileTime )
 	return iRetVal;
 }
 
-int file_list_read_directory( const char *p_pszDir, const int p_iRecursive )
+static int file_list_read_directory( const char *p_pszDir, const int p_iRecursive )
 {
 	int iRetVal = 0;
 	DIR *psoDir;

@@ -8,7 +8,7 @@
 
 #include "../../nfc_dict.h"
 #include "../../../util/options.h"
-#include "../ipfix_data_types.h"
+#include "../../ipfix/data_types/ipfix_data_types.h"
 #include "ipfix_dictionary.h"
 
 struct SIPFIXDictKey {

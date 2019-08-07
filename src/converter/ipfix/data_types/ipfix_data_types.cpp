@@ -65,6 +65,26 @@ int ifpix_parse_packet( SIPFIXHeaderSpecific *p_psoHdr, uint8_t *p_puiData, size
   return iRetVal;
 }
 
+bool operator == ( const SIPFIXField &p_soLeft, const SIPFIXField &p_soRight )
+{
+	if( p_soLeft.m_soFieldCommon.m_ui16FieldLength == p_soRight.m_soFieldCommon.m_ui16FieldLength ) {
+	} else {
+		return false;
+	}
+
+	if( p_soLeft.m_soFieldCommon.m_unionInfoElement.m_ui16FullInfoElementId == p_soRight.m_soFieldCommon.m_unionInfoElement.m_ui16FullInfoElementId ) {
+	} else {
+		return false;
+	}
+
+	if( p_soLeft.m_ui32EnterpriseNumber == p_soRight.m_ui32EnterpriseNumber ) {
+	} else {
+		return false;
+	}
+
+	return true;
+}
+
 static size_t ipfix_parse_set( SIPFIXHeaderSpecific *p_psoHdr, uint8_t *p_puiData, size_t p_stSize )
 {
   size_t stRetVal = 0;
@@ -112,44 +132,51 @@ static size_t ipfix_extract_set_hdr( uint8_t *p_puiData, SIPFIXSet *p_psoSet )
 
 static size_t ipfix_parse_template_set( SIPFIXHeaderSpecific *p_psoHdr, uint8_t *p_puiData, size_t p_stSize )
 {
-  size_t stDataSize = p_stSize - sizeof( SIPFIXSet );
-  size_t stOperated = 0;
-  SIPFIXTemplateRecordHeader soTmpltHdr;
-  SIPFIXField soTmpltFld;
-  uint16_t ui16FieldCount = 0;
-  SIPFIXTemplateCache *psoTmpltCache;
+	size_t stDataSize = p_stSize - sizeof( SIPFIXSet );
+	size_t stOperated = 0;
+	SIPFIXTemplateRecordHeader soTmpltHdr;
+	SIPFIXField soTmpltFld;
+	SIPFIXTemplateCache *psoTmpltCache;
+	SIPFIXTemplateFieldList *psoFieldList;
+	uint16_t ui16FieldCount = 0;
 
-  stOperated = ipfix_extract_template_set_hdr( p_puiData, &soTmpltHdr );
-  if ( NULL == ( psoTmpltCache = ipfix_converter_create_template( p_psoHdr->m_ui32ObservDomainId, soTmpltHdr.m_ui16TemplateId ) ) ) {
-    /* this template is already in cache */
-    logger_message( 9, "%s: template %u for observation domain %#010x already in cache\n", __FUNCTION__, soTmpltHdr.m_ui16TemplateId, p_psoHdr->m_ui32ObservDomainId );
-    return stDataSize;
-  } else {
-    /* it is new template */
-    logger_message( 4, "this is a new template %u for observation domain %#010x\n", soTmpltHdr.m_ui16TemplateId, p_psoHdr->m_ui32ObservDomainId );
-  }
+	stOperated = ipfix_extract_template_set_hdr( p_puiData, &soTmpltHdr );
+	logger_message( 5,
+		"%s: template %u [field count: %u] for observation domain %#010x encountered\n",
+		__FUNCTION__, soTmpltHdr.m_ui16TemplateId, soTmpltHdr.m_ui16FieldCount, p_psoHdr->m_ui32ObservDomainId );
 
-  while ( stOperated < stDataSize && ui16FieldCount < soTmpltHdr.m_ui16FieldCount ) {
-    stOperated += ipfix_extract_template_field( p_puiData + stOperated, &soTmpltFld );
-    ipfix_converter_add_template_field( psoTmpltCache, soTmpltFld );
-    ++ ui16FieldCount;
-  }
+	psoTmpltCache = ipfix_converter_create_template( p_psoHdr->m_ui32ObservDomainId, soTmpltHdr.m_ui16TemplateId );
+	if( NULL == psoTmpltCache ) {
+		logger_message( 0,
+			"%s: fatal error: can not to create template object: template %u [field count : %u] for observation domain %#010x: ",
+			__FUNCTION__, soTmpltHdr.m_ui16TemplateId, soTmpltHdr.m_ui16FieldCount, p_psoHdr->m_ui32ObservDomainId );
+		return stDataSize;
+	}
 
-  if ( ui16FieldCount == soTmpltHdr.m_ui16FieldCount ) {
-    ipfix_converter_add_template( psoTmpltCache );
-  } else {
-    logger_message( 0, "%s: template field count %u but operated %u\n", __FUNCTION__, soTmpltHdr.m_ui16FieldCount, ui16FieldCount );
-  }
+	psoFieldList = ipfix_converter_create_template_fieldList();
 
-  if ( stDataSize == stOperated ) {
-    /* all data was operated */
-    logger_message( 5, "%s: template set operated completely\n", __FUNCTION__ );
-  } else {
-    /* may by padding */
-    logger_message( 5, "%s: template set padding size %u\n", __FUNCTION__, stDataSize - stOperated );
-  }
+	while( stOperated < stDataSize && ui16FieldCount < soTmpltHdr.m_ui16FieldCount ) {
+		stOperated += ipfix_extract_template_field( p_puiData + stOperated, &soTmpltFld );
+		ipfix_converter_add_template_field( psoFieldList, soTmpltFld );
+		++ui16FieldCount;
+	}
 
-  return stDataSize;
+	if( soTmpltHdr.m_ui16FieldCount == ui16FieldCount ) {
+		ipfix_converter_add_template( psoTmpltCache, psoFieldList );
+	} else {
+		logger_message( 0, "%s: template field count %u but operated %u\n", __FUNCTION__, soTmpltHdr.m_ui16FieldCount, ui16FieldCount );
+		return stDataSize;
+	}
+
+	if( stDataSize == stOperated ) {
+		/* all data was operated */
+		logger_message( 5, "%s: template set operated completely\n", __FUNCTION__ );
+	} else {
+		/* may by padding */
+		logger_message( 5, "%s: template set padding size %u\n", __FUNCTION__, stDataSize - stOperated );
+	}
+
+	return stDataSize;
 }
 
 static size_t ipfix_extract_template_set_hdr( const uint8_t *p_pui8Data, SIPFIXTemplateRecordHeader *p_psoTemplateHdr )
@@ -215,7 +242,7 @@ static size_t ipfix_parse_data_set( SIPFIXHeaderSpecific *p_psoHdr, uint16_t p_u
 
 	psoOutput = nfc_outputtemplate_object_create();
 
-	while( stOperated < stDataSize ) {
+	while( stOperated + stDataSetLen <= stDataSize ) {
 		nfc_outputtemplate_object_erase( psoOutput );
 		for( uint16_t uiInd = 0; uiInd < ui16FieldCount; ++uiInd ) {
 			if( 0 == ipfix_converter_template_cache_get_field_info( psoFieldList, uiInd, &soField, &stOffset ) ) {

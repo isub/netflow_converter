@@ -10,16 +10,17 @@
 struct SIPFIXTemplateCache;
 struct SIPFIXTemplateFieldList;
 
-/* инициализация/деинициализация */
+/* РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ/РґРµРёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ */
 int ipfix_converter_cache_init();
 void ipfix_converter_cache_fin();
 
-/* работа с объектом памяти*/
-SIPFIXTemplateCache * ipfix_converter_create_template( uint32_t p_ui32ObservDomainId, uint16_t p_ui16TemplateId );
-void ipfix_converter_add_template_field( SIPFIXTemplateCache *p_psoIPFIXTemplateCache, SIPFIXField &p_soIPFIXField );
+/* СЂР°Р±РѕС‚Р° СЃ РѕР±СЉРµРєС‚РѕРј РїР°РјСЏС‚Рё*/
+SIPFIXTemplateCache * ipfix_converter_create_template( const uint32_t p_ui32ObservDomainId, const uint16_t p_ui16TemplateId );
+SIPFIXTemplateFieldList * ipfix_converter_create_template_fieldList();
+void ipfix_converter_add_template_field( SIPFIXTemplateFieldList *p_psoIPFIXTemplateFieldList, SIPFIXField &p_soIPFIXField );
 
-/* работа со списком шаблонов */
-int ipfix_converter_add_template( SIPFIXTemplateCache *p_psoIPFIXTemplateCache );
+/* СЂР°Р±РѕС‚Р° СЃРѕ СЃРїРёСЃРєРѕРј С€Р°Р±Р»РѕРЅРѕРІ */
+int ipfix_converter_add_template( SIPFIXTemplateCache *p_psoIPFIXTemplateCache, SIPFIXTemplateFieldList *p_psoFieldList );
 
 SIPFIXTemplateFieldList * ipfix_converter_get_field_list( uint32_t p_ui32ObservDomainId, uint16_t p_ui16TemplateId );
 uint16_t ipfix_converter_get_field_count( SIPFIXTemplateFieldList * p_psoFieldList );

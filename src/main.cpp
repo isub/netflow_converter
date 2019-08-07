@@ -5,7 +5,7 @@
 #include "util/logger.h"
 #include "util/options.h"
 #include "filter/filter_time.h"
-#include "converter/ipfix/ipfix_converter_cache.h"
+#include "converter/ipfix/cache/ipfix_converter_cache.h"
 #include "converter/ipfix/dict/iana/ipfix_dict_iana.h"
 #include "converter/nfv9/dict/nfv9_dict.h"
 #include "converter/nfc_output_template.h"

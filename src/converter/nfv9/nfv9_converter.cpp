@@ -26,7 +26,7 @@ int nfv9_converter_convert_packet( nf_data_loader::SFileInfo *p_psoDataLoader )
 	#ifdef DEBUG
 		std::string strTimeValue;
 		nfc_dict_get_time_value( 1, static_cast< uint64_t >( soNFV9Hdr.m_ui32UNIXSec ), &strTimeValue );
-		logger_message( 10, "%s: count: %u; uptime: %u; UNIX seconds: %s; sequence number: %u; source id: %#010x\n", __FUNCTION__, soNFV9Hdr.m_ui16Count, soNFV9Hdr.m_ui32SysUpTime, strTimeValue.c_str(), soNFV9Hdr.m_ui32SeqNumber, soNFV9Hdr.m_ui32SourceId );
+		logger_message( 5, "%s: count: %u; uptime: %u; UNIX seconds: %s; sequence number: %u; source id: %#010x\n", __FUNCTION__, soNFV9Hdr.m_ui16Count, soNFV9Hdr.m_ui32SysUpTime, strTimeValue.c_str(), soNFV9Hdr.m_ui32SeqNumber, soNFV9Hdr.m_ui32SourceId );
 	#endif
 	} else {
 		return EINVAL;

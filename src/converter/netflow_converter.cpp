@@ -29,7 +29,7 @@ void * netflow_converter_start( void * )
 	int iFnRes = 0;
 
 	while( NULL != ( psoFileListInfo = file_list_get_next_file_info() ) ) {
-		logger_message( 5, "file '%s' is operating\n", file_list_get_file_name( psoFileListInfo ) );
+		logger_message( 5, "file '%s' is operating\n", file_list_get_file_name( psoFileListInfo )->c_str() );
 		psoDataLoader = data_loader_open( psoFileListInfo );
 		if( NULL != psoDataLoader ) {
 		} else {
@@ -42,25 +42,25 @@ void * netflow_converter_start( void * )
 				continue;
 			}
 			switch( ui16VersionNumber ) {
-				case 9:
-					iFnRes = nfv9_converter_convert_packet( psoDataLoader );
-					break;
-				case 10:
-					iFnRes = ipfix_converter_convert_packet( psoDataLoader );
-					break;
-				default:
-					logger_message( 0, "file '%s': unsupported NetFlow version: %d\n", file_list_get_file_name( psoFileListInfo ), ui16VersionNumber );
-					iFnRes = -1;
-					break;
+			case 9:
+				iFnRes = nfv9_converter_convert_packet( psoDataLoader );
+				break;
+			case 10:
+				iFnRes = ipfix_converter_convert_packet( psoDataLoader );
+				break;
+			default:
+				logger_message( 0, "file '%s': unsupported NetFlow version: %d\n", file_list_get_file_name( psoFileListInfo )->c_str(), ui16VersionNumber );
+				iFnRes = -1;
+				break;
 			}
 			if( 0 == iFnRes ) {
 			} else {
-				logger_message( 5, "file '%s' is operated with errors\n", file_list_get_file_name( psoFileListInfo ) );
+				logger_message( 5, "file '%s' is operated with errors\n", file_list_get_file_name( psoFileListInfo )->c_str() );
 				break;
 			}
 		}
 		if( 0 == iFnRes ) {
-			logger_message( 5, "file '%s' is operated successfully\n", file_list_get_file_name( psoFileListInfo ) );
+			logger_message( 5, "file '%s' is operated successfully\n", file_list_get_file_name( psoFileListInfo )->c_str() );
 		}
 		data_loader_close( psoDataLoader );
 	}

@@ -20,8 +20,8 @@ obj/ipfix_converter.o: converter/ipfix/ipfix_converter.h converter/ipfix/ipfix_c
 	g++ $(MY_GCC_OPT) -c converter/ipfix/ipfix_converter.cpp -o obj/ipfix_converter.o
 obj/ipfix_data_types.o: converter/ipfix/data_types/ipfix_data_types.h converter/ipfix/data_types/ipfix_data_types.cpp
 	g++ $(MY_GCC_OPT) -c converter/ipfix/data_types/ipfix_data_types.cpp -o obj/ipfix_data_types.o
-obj/ipfix_converter_cache.o: converter/ipfix/ipfix_converter_cache.h converter/ipfix/ipfix_converter_cache.cpp
-	g++ $(MY_GCC_OPT) -c converter/ipfix/ipfix_converter_cache.cpp -o obj/ipfix_converter_cache.o
+obj/ipfix_converter_cache.o: converter/ipfix/cache/ipfix_converter_cache.h converter/ipfix/cache/ipfix_converter_cache.cpp
+	g++ $(MY_GCC_OPT) -c converter/ipfix/cache/ipfix_converter_cache.cpp -o obj/ipfix_converter_cache.o
 obj/ipfix_dictionary.o: converter/ipfix/dict/ipfix_dictionary.h converter/ipfix/dict/ipfix_dictionary.cpp obj/nfc_dict.o
 	g++ $(MY_GCC_OPT) -c converter/ipfix/dict/ipfix_dictionary.cpp -o obj/ipfix_dictionary.o
 obj/ipfix_dict_iana.o: converter/ipfix/dict/iana/ipfix_dict_iana.h converter/ipfix/dict/iana/ipfix_dict_iana.cpp

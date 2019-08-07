@@ -40,4 +40,6 @@ struct SIPFIXHeader {
 
 int ifpix_parse_packet( SIPFIXHeaderSpecific *p_psoHdr, uint8_t *p_puiData, size_t p_stSize );
 
+bool operator == ( const SIPFIXField &p_soLeft, const SIPFIXField &p_soRight );
+
 #endif /* __IPFIX_DATA_TYPES_H__ */

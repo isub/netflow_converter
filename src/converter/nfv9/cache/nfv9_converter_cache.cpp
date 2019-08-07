@@ -120,19 +120,24 @@ bool SNFV9TemplateCache::operator < ( const SNFV9TemplateCache &p_soRight ) cons
 {
 	if( m_ui32SourceId < p_soRight.m_ui32SourceId ) {
 		return true;
-	} else {
-		return false;
 	}
 
-	if( m_ui32SourceId == p_soRight.m_ui32SourceId ) {
-	} else {
+	if( m_ui32SourceId > p_soRight.m_ui32SourceId ) {
 		return false;
 	}
 
 	if( m_ui16TemplateId < p_soRight.m_ui16TemplateId ) {
 		return true;
-	} else {
+	}
+
+	if( m_ui16TemplateId > p_soRight.m_ui16TemplateId ) {
+		return false;
+	}
+
+	if( m_psoFieldList->m_ui16FieldCount < p_soRight.m_psoFieldList->m_ui16FieldCount ) {
 		return true;
+	} else {
+		return false;
 	}
 }
 
